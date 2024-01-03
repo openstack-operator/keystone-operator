@@ -1,0 +1,33 @@
+#jinja2: trim_blocks:False
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: '{{ ansible_operator_meta.name }}-configmap'
+  namespace: '{{ ansible_operator_meta.namespace }}'
+  labels:
+    role: '{{role}}'
+data:
+  keystone.conf: |
+{{ keystone_conf }}
+
+  policy.json: |
+{{ policy_json }}
+
+  keystone-startup.sh: |
+{{ keystone_startup_script }}
+
+  wsgi-keystone.conf: |
+{{ wsgi_keystone_conf }}
+
+  update_fernet_secret.py: |
+{{ update_fernet_secret_script }}
+
+  fernet-rotate.sh: |
+{{ fernet_rotate_script }}
+
+  fernet-setup.sh: |
+{{ fernet_setup_script }}
+
+  config.json: |
+{{ config_json }}

@@ -1,0 +1,103 @@
+---
+
+### Global
+
+# The "temp" files that are created before merge need to stay persistent due
+# to the fact that ansible will register a "change" if it has to create them
+# again. Persistent files allow for idempotency
+container_config_directory: "/var/lib/kolla/config_files"
+
+kolla_base_distro: "centos"
+kolla_install_type: "binary"
+config_strategy: "COPY_ALWAYS"
+
+openstack_service_workers: "{{ [ansible_facts.processor_vcpus, 5]|min }}"
+
+##################
+# Backend options
+##################
+kolla_httpd_keep_alive: "60"
+kolla_httpd_timeout: "60"
+
+### Keystone
+
+keystone_install_type: "binary"
+
+ansible_operator_meta:
+  name: keystone-operator
+  namespace: openstack
+
+role: "control"
+
+overrides_conf: |
+  [DEFAULT]
+  workers = 8
+
+overrides_policy: |
+  {
+    "secret:get": "role:member"
+  }
+
+keystone_logging_debug: "false"
+
+# keystone_internal_fqdn: "{{ kolla_internal_fqdn }}"
+# keystone_external_fqdn: "{{ kolla_external_fqdn }}"
+# 
+keystone_public_port: "5000"
+keystone_public_listen_port: "{{ keystone_public_port }}"
+keystone_admin_port: "35357"
+keystone_admin_listen_port: "{{ keystone_admin_port }}"
+# 
+# keystone_admin_url: "{{ admin_protocol }}://{{ keystone_internal_fqdn | put_address_in_context('url') }}:{{ keystone_admin_port }}"
+# keystone_internal_url: "{{ internal_protocol }}://{{ keystone_internal_fqdn | put_address_in_context('url') }}:{{ keystone_public_port }}"
+# keystone_public_url: "{{ public_protocol }}://{{ keystone_external_fqdn | put_address_in_context('url') }}:{{ keystone_public_port }}"
+# 
+# keystone_admin_user: "admin"
+# keystone_admin_project: "admin"
+# 
+# default_project_domain_name: "Default"
+# default_project_domain_id: "default"
+# 
+# default_user_domain_name: "Default"
+# default_user_domain_id: "default"
+# 
+# # Valid options are [ fernet ]
+# keystone_token_provider: "fernet"
+# # Keystone fernet token expiry in seconds. Default is 1 day.
+# fernet_token_expiry: 86400
+# # Keystone window to allow expired fernet tokens. Default is 2 days.
+# fernet_token_allow_expired_window: 172800
+# # Keystone fernet key rotation interval in seconds. Default is sum of token
+# # expiry and allow expired window, 3 days. This ensures the minimum number
+# # of keys are active. If this interval is lower than the sum of the token
+# # expiry and allow expired window, multiple active keys will be necessary.
+# fernet_key_rotation_interval: "{{ fernet_token_expiry + fernet_token_allow_expired_window }}"
+# 
+# keystone_default_user_role: "_member_"
+# 
+keystone_database_user: "keystone"
+#keystone_database_password: "ustack"
+keystone_database_name: "keystone"
+keystone_database_address: "10.1.80.101:3306"
+# 
+# 
+# ####################
+# # Fernet
+# ####################
+keystone_username: "keystone"
+keystone_groupname: "keystone"
+
+####################
+# TLS
+####################
+keystone_enable_tls_backend: "no"
+
+
+####################
+# Image
+####################
+keystone_tag: "latest"
+
+keystone_fernet_image: "192.168.0.157:5000/uos8/keystone-fernet"
+keystone_fernet_tag: "{{ keystone_tag }}"
+keystone_fernet_image_full: "{{ keystone_fernet_image }}:{{ keystone_fernet_tag }}"

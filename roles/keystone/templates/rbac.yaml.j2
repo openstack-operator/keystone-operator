@@ -1,0 +1,26 @@
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: '{{ ansible_operator_meta.name }}-secret-list'
+  namespace: '{{ ansible_operator_meta.namespace }}'
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["list", "get", "update", "create"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: '{{ ansible_operator_meta.name }}-secret-list'
+  namespace: '{{ ansible_operator_meta.namespace }}'
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: '{{ ansible_operator_meta.namespace }}'
+roleRef:
+  kind: Role
+  name: '{{ ansible_operator_meta.name }}-secret-list'
+  apiGroup: rbac.authorization.k8s.io
+  namespace: '{{ ansible_operator_meta.namespace }}'

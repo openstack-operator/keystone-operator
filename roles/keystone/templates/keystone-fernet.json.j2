@@ -1,0 +1,36 @@
+{
+    "command": "dummy",
+    "config_files": [
+        {
+            "source": "{{ container_config_directory }}/keystone.conf",
+            "dest": "/etc/keystone/keystone.conf",
+            "owner": "keystone",
+            "perm": "0600"
+        },
+        {
+            "source": "{{ container_config_directory }}/update_fernet_secret.py",
+            "dest": "/usr/bin/update_fernet_secret.py",
+            "owner": "root",
+            "perm": "0755"
+        },
+        {
+            "source": "{{ container_config_directory }}/fernet-rotate.sh",
+            "dest": "/usr/bin/fernet-rotate.sh",
+            "owner": "root",
+            "perm": "0755"
+        },
+        {
+            "source": "{{ container_config_directory }}/fernet-setup.sh",
+            "dest": "/usr/bin/fernet-setup.sh",
+            "owner": "root",
+            "perm": "0755"
+        }
+    ],
+    "permissions": [
+        {
+            "path": "/etc/keystone/fernet-keys",
+            "owner": "keystone:keystone",
+            "perm": "0770"
+        }
+    ]
+}

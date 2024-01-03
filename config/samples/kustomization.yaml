@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- keystone_v1alpha1_keystone.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

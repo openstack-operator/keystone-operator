@@ -1,0 +1,9 @@
+[DEFAULT]
+debug = {{ keystone_logging_debug }}
+
+[database]
+connection = mysql+pymysql://{{ keystone_database_user }}:{{ keystone_database_password }}@{{ keystone_database_address }}/{{ keystone_database_name }}
+max_retries = -1
+
+[token]
+revoke_by_id = False

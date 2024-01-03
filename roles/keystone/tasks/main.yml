@@ -1,0 +1,108 @@
+---
+
+- name: Get secret for keystone
+  kubernetes.core.k8s_info:
+    kind: Secret
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    name: '{{ ansible_operator_meta.name }}-secret'
+  register: keystone_operator_secret
+
+- name: Set fact keystone_database_password if secret exists
+  set_fact:
+    keystone_database_password: "{{ keystone_operator_secret.resources[0].data.keystone_database_password | b64decode }}"
+  when:
+    - keystone_operator_secret.resources | length > 0
+
+- name: Generate passwords for keystone if secret not found
+  set_fact:
+    keystone_database_password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=40) }}"
+  when:
+    - keystone_operator_secret.resources | length == 0
+
+- name: Create secret for keystone if secret not found
+  vars:
+    keystone_database_password_b64: "{{ keystone_database_password | b64encode }}"
+  kubernetes.core.k8s:
+    state: present
+    template:
+      path: 'secret.yaml.j2'
+  when:
+    - keystone_operator_secret.resources | length == 0
+
+- name: Generate keystone_conf fact from keystone.conf.j2 and overrides_conf
+  merge_ini:
+    sources:
+      - "{{role_path}}/templates/keystone.conf.j2"
+    overrides_ini: "{{ overrides_conf }}"
+    indent: 4
+    fact_name: "keystone_conf"
+
+- debug:
+    msg: "{{ keystone_conf }}"
+
+- name: Generate policy.json fact from policy.json.j2 and overrides_json
+  merge_json:
+    sources:
+      - "{{role_path}}/templates/policy.json.j2"
+    overrides_json: "{{ overrides_policy }}"
+    indent: 4
+    fact_name: "policy_json"
+
+- debug:
+    msg: "{{ policy_json }}"
+
+- name: Generate keystone_startup_script fact
+  set_fact:
+    keystone_startup_script: "{{ lookup('template', 'keystone-startup.sh.j2') | comment(decoration=' '*4) }}"
+
+- name: Generate wsgi-keystone_conf fact
+  set_fact:
+    wsgi_keystone_conf: "{{ lookup('template', 'wsgi-keystone.conf.j2') | comment(decoration=' '*4) }}"
+
+- name: Generate keystone update_fernet_secret_script fact
+  set_fact:
+    update_fernet_secret_script: "{{ lookup('file', 'update_fernet_secret.py') | comment(decoration=' '*4) }}"
+
+- name: Generate keystone fernet_setup_script fact
+  set_fact:
+    fernet_setup_script: "{{ lookup('template', 'fernet-setup.sh.j2') | comment(decoration=' '*4) }}"
+
+- name: Generate keystone fernet_rotate_script fact
+  set_fact:
+    fernet_rotate_script: "{{ lookup('template', 'fernet-rotate.sh.j2') | comment(decoration=' '*4) }}"
+
+- name: Generate keystone fernet config_json fact
+  set_fact:
+    config_json: "{{ lookup('template', 'keystone-fernet.json.j2') | to_nice_json | comment(decoration=' '*4) }}"
+
+- template:
+    src: "{{ role_path }}/templates/configmap.yaml.j2"
+    dest: /tmp/configmap.yaml
+
+- name: Create configmap for keystone
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'configmap.yaml.j2') }}"
+
+- name: Create an empty secret for keystone fernet
+  kubernetes.core.k8s:
+    state: present
+    api_version: v1
+    kind: Secret
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    name: '{{ ansible_operator_meta.name }}-fernet-secret'
+
+- name: Grant permissions to default service account to update secret 
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'rbac.yaml.j2') }}"
+
+- name: Create a job to do fernet setup
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'fernet-job.yaml.j2') }}"
+
+- name: Create a cronjob to do fernet rotating
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'fernet-cronjob.yaml.j2') }}"

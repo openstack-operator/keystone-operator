@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: '{{ ansible_operator_meta.name }}-fernet-setup'
+  namespace: '{{ ansible_operator_meta.namespace }}'
+spec:
+  ttlSecondsAfterFinished: 0
+  template:
+    spec:
+      containers:
+      - name: fernet-setup
+        image: {{ keystone_fernet_image_full }}
+        env:
+        - name: KOLLA_CONFIG_STRATEGY
+          value: {{ config_strategy }}
+        command:
+        - /bin/bash
+        - -c
+        - sudo -E kolla_set_configs && /usr/bin/fernet-setup.sh
+        volumeMounts:
+        - name: configmap
+          mountPath: {{ container_config_directory }}
+        - name: fernet-secret
+          mountPath: /tmp/fernet-keys
+        - name: fernet-keys
+          mountPath: /etc/keystone/fernet-keys
+      restartPolicy: Never
+      volumes:
+      - name: configmap
+        configMap:
+          name: {{ ansible_operator_meta.name }}-configmap
+      - name: fernet-secret
+        secret:
+          secretName: {{ ansible_operator_meta.name }}-fernet-secret
+      - name: fernet-keys
+        emptyDir: {}
